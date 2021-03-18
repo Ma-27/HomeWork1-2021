@@ -1,5 +1,7 @@
 package com.mamh.homework12021;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -100,12 +102,6 @@ public class ItemListActivity extends AppCompatActivity {
         private final ItemListActivity mParentActivity;
         private List<ArticleBean> mValues;
         private final boolean mTwoPane;
-        private final View.OnClickListener mOnClickListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-            }
-        };
 
         SimpleItemRecyclerViewAdapter(ItemListActivity parent,
                                       boolean twoPane) {
@@ -125,7 +121,16 @@ public class ItemListActivity extends AppCompatActivity {
             holder.mContentView.setText(mValues.get(position).getTitle());
 
             holder.itemView.setTag(mValues.get(position));
-            holder.itemView.setOnClickListener(mOnClickListener);
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Context context = v.getContext();
+                    Intent intent = new Intent(context, ItemDetailActivity.class);
+                    intent.putExtra("url", mValues.get(position).getLink());
+                    intent.putExtra("title", mValues.get(position).getTitle());
+                    context.startActivity(intent);
+                }
+            });
         }
 
         @Override
