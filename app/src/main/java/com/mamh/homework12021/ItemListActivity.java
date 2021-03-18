@@ -1,24 +1,24 @@
 package com.mamh.homework12021;
 
-import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-import com.mamh.homework12021.dummy.DummyContent;
+import com.mamh.homework12021.bean.ArticleBean;
 import com.mamh.homework12021.model.MainActivityViewModel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,6 +37,8 @@ public class ItemListActivity extends AppCompatActivity {
      */
     private boolean mTwoPane;
     private MainActivityViewModel mainActivityViewModel;
+    private static final String TAG = "ItemListActivity成功";
+    List<ArticleBean> mAllArticlesList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,17 +48,19 @@ public class ItemListActivity extends AppCompatActivity {
         //使用ViewModel
         mainActivityViewModel = ViewModelProviders
                 .of(this).get(MainActivityViewModel.class);
+        mAllArticlesList = new ArrayList<>();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
-
         FloatingActionButton fab = findViewById(R.id.fab);
+
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                //获取首页地址
+                mainActivityViewModel.getAllArticles();
+                Snackbar.make(view, "内容已刷新", Snackbar.LENGTH_SHORT).show();
             }
         });
 
@@ -66,54 +70,45 @@ public class ItemListActivity extends AppCompatActivity {
             // If this view is present, then the
             // activity should be in two-pane mode.
             mTwoPane = true;
-
-
         }
 
-        View recyclerView = findViewById(R.id.item_list);
+        RecyclerView recyclerView = findViewById(R.id.item_list);
         assert recyclerView != null;
-        setupRecyclerView((RecyclerView) recyclerView);
-    }
-
-    private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
         SimpleItemRecyclerViewAdapter adapter = new
-                SimpleItemRecyclerViewAdapter(this, DummyContent.ITEMS, mTwoPane);
+                SimpleItemRecyclerViewAdapter(this, mTwoPane);
 
         recyclerView.setAdapter(adapter);
+
+        //FIXME 初始化observer
+        final Observer<List<ArticleBean>> observer = new Observer<List<ArticleBean>>() {
+            @Override
+            public void onChanged(List<ArticleBean> articleBeans) {
+                Log.d(TAG, "onChanged: 检测到变化");
+                mAllArticlesList = articleBeans;
+                adapter.setContents(articleBeans);
+            }
+        };
+        mainActivityViewModel.getAllArticles().observe(this, observer);
+
+        //自己刷新一次
+        mainActivityViewModel.getAllArticles();
     }
 
     public static class SimpleItemRecyclerViewAdapter
             extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
 
         private final ItemListActivity mParentActivity;
-        private final List<DummyContent.DummyItem> mValues;
+        private List<ArticleBean> mValues;
         private final boolean mTwoPane;
         private final View.OnClickListener mOnClickListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                DummyContent.DummyItem item = (DummyContent.DummyItem) view.getTag();
-                if (mTwoPane) {
-                    Bundle arguments = new Bundle();
-                    arguments.putString(ItemDetailFragment.ARG_ITEM_ID, item.id);
-                    ItemDetailFragment fragment = new ItemDetailFragment();
-                    fragment.setArguments(arguments);
-                    mParentActivity.getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.item_detail_container, fragment)
-                            .commit();
-                } else {
-                    Context context = view.getContext();
-                    Intent intent = new Intent(context, ItemDetailActivity.class);
-                    intent.putExtra(ItemDetailFragment.ARG_ITEM_ID, item.id);
 
-                    context.startActivity(intent);
-                }
             }
         };
 
         SimpleItemRecyclerViewAdapter(ItemListActivity parent,
-                                      List<DummyContent.DummyItem> items,
                                       boolean twoPane) {
-            mValues = items;
             mParentActivity = parent;
             mTwoPane = twoPane;
         }
@@ -127,8 +122,7 @@ public class ItemListActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(final ViewHolder holder, int position) {
-            holder.mIdView.setText(mValues.get(position).id);
-            holder.mContentView.setText(mValues.get(position).content);
+            holder.mContentView.setText(mValues.get(position).getTitle());
 
             holder.itemView.setTag(mValues.get(position));
             holder.itemView.setOnClickListener(mOnClickListener);
@@ -136,7 +130,16 @@ public class ItemListActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return mValues.size();
+            if (mValues == null) {
+                return 0;
+            } else {
+                return mValues.size();
+            }
+        }
+
+        public void setContents(List<ArticleBean> mValues) {
+            this.mValues = mValues;
+            notifyDataSetChanged();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
