@@ -14,7 +14,7 @@ public class Request {
     /**
      * HttpGet请求封装
      */
-    public static void sendHttpGetRequest(String address, HttpCallbackListener listener) {
+    public void sendHttpGetRequest(String address, HttpCallbackListener listener) {
         HttpURLConnection connection = null;
         try {
             URL url = new URL(address);
