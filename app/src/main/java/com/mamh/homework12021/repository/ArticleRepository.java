@@ -17,6 +17,8 @@ public class ArticleRepository {
     private static final String TAG = "ArticleRepository成功";
     MutableLiveData<List<ArticleBean>> mAllArticles;
     private String response;
+    //单例模式
+    private volatile static FetchArticleList INSTANCE;
 
     public ArticleRepository() {
         mAllArticles = new MutableLiveData<>();
@@ -26,9 +28,20 @@ public class ArticleRepository {
         return mAllArticles;
     }
 
+    private FetchArticleList getInstance() {
+        if (INSTANCE == null) {
+            synchronized (ArticleRepository.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new FetchArticleList();
+                }
+            }
+        }
+        return INSTANCE;
+    }
+
     public void SendGetRequest() {
         Log.d(TAG, "发送请求");
-        new FetchArticleList().execute();
+        this.getInstance().execute();
     }
 
     public class FetchArticleList extends AsyncTask<Void, Void, String> {
